@@ -16,7 +16,7 @@ It is a **control layer** that sits between incoming support tickets and interna
 
 Core capabilities:
 
-- Structured classification (category, priority, risk flags)
+- Structured classification across category, priority, and risk flags
 - Policy-aware routing to internal teams
 - Market lifecycle context awareness
 - Safe response drafting aligned with policy constraints
@@ -27,25 +27,17 @@ Core capabilities:
 
 ## System Flow
 
-Each ticket goes through a deterministic pipeline:
+Each ticket is processed through a structured support pipeline:
 
-1. Intake → detect type and sentiment  
-2. Tagging Model → classify category, priority, risk  
-3. Policy Retrieval → match internal and public policies  
-4. Market Context → assess lifecycle relevance  
-5. Escalation → route to correct internal team  
-6. Response Draft → generate safe, policy-aligned reply  
-7. Human Review → required for sensitive cases  
-
----
-
-## Example Use Cases
-
-- Failed trades during live markets  
-- Market resolution disputes  
-- Deposit and recovery issues  
-- Account access and restriction cases  
-- Compliance and geo restriction questions  
+| Stage | Purpose |
+|------|--------|
+| Intake | Detect issue type, sentiment, and support relevance |
+| Tagging Model | Classify category, priority, risk flags, and owner team |
+| Policy Retrieval | Match the ticket against internal and public support guidance |
+| Market Context | Assess lifecycle relevance across trading, resolution, and settlement |
+| Escalation | Route the case to the correct internal team with required evidence |
+| Response Draft | Prepare a safe, policy aligned customer reply |
+| Human Review | Enforce review for sensitive or high risk cases |
 
 ---
 
@@ -60,12 +52,12 @@ The system aggregates tickets into structured signals:
 
 This allows support activity to surface:
 
-- execution failures
-- unclear resolution logic
-- UX gaps in deposits
+- execution failures during live trading
+- unclear resolution or settlement logic
+- deposit and recovery friction
 - trust and safety pressure points
 
-*In a production environment, this data would be persisted and aggregated across all sessions, queues, and regions.*
+*In a production environment, this data would be persisted and aggregated across sessions, queues, regions, and support teams so reporting reflects the full support stack.*
 
 ---
 
@@ -75,4 +67,6 @@ This allows support activity to surface:
 npm install
 npm run dev
 
-Open the app locally at: http://localhost:3000
+Open the app locally:
+
+http://localhost:3000
