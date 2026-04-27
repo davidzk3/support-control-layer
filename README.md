@@ -67,7 +67,7 @@ This allows support activity to surface:
 npm install
 npm run dev
 ```
-# Open locally:
-```
-[http://localhost:3000](http://localhost:3000)
-```
+
+Open locally:
+
+> http://localhost:3000
