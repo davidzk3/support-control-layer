@@ -57,7 +57,7 @@ This allows support activity to surface:
 - deposit and recovery friction
 - trust and safety pressure points
 
-*In a production environment, this data would be persisted and aggregated across sessions, queues, regions, and support teams so reporting reflects the full support stack.*
+*In a production environment, this data would be persisted and aggregated across sessions, queues, and support teams so reporting reflects the full support stack.*
 
 ---
 
@@ -67,6 +67,6 @@ This allows support activity to surface:
 npm install
 npm run dev
 
-Open the app locally:
-
+# Open locally:
 http://localhost:3000
+```
