@@ -278,11 +278,22 @@ export default function Home() {
                 </div>
               </Card>
 
-              <Card title="Customer Draft">
-                <p className="whitespace-pre-wrap text-slate-300">
-                  {result.response}
-                </p>
-              </Card>
+<Card title={result.response ? "Customer Draft" : "CX Analytics Signal"}>
+  {result.response ? (
+    <p className="whitespace-pre-wrap text-slate-300">
+      {result.response}
+    </p>
+  ) : (
+    <div className="space-y-3">
+      <p className="text-slate-300">
+        No customer response required.
+      </p>
+      <p className="text-slate-400">
+        This message is classified as positive feedback. It should be captured for sentiment tracking, NPS analysis, and product quality signals, not routed as support work.
+      </p>
+    </div>
+  )}
+</Card>
 
               <div className="lg:col-span-3">
                 <Card title="Classification Evidence">
@@ -514,6 +525,14 @@ function buildSessionClusters(results: any[]) {
           "Track restriction appeals and human override rate to calibrate review quality.",
       };
     }
+
+if (category === "positive_feedback") {
+  return {
+    cluster: "Positive feedback and customer sentiment",
+    product_signal:
+      "Capture appreciation, sentiment, and qualitative feedback for CX analytics, NPS review, and product quality reporting.",
+  };
+}
 
     if (category === "geo_issue") {
       return {

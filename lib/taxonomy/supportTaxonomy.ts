@@ -50,11 +50,20 @@ export const taxonomy = {
     "geo",
     "jurisdiction",
   ],
+  positive_feedback: [
+    "thank you",
+    "thanks",
+    "good job",
+    "happy",
+    "shout out",
+    "appreciate",
+    "great support",
+    "good day",
+  ],
 };
 
 function normalizeTicketText(text: string) {
   const typoMap: Record<string, string> = {
-    // resolution / settlement
     resoluton: "resolution",
     reslution: "resolution",
     resoltion: "resolution",
@@ -63,15 +72,11 @@ function normalizeTicketText(text: string) {
     setlement: "settlement",
     settlment: "settlement",
 
-    // trading
     postion: "position",
     positon: "position",
     posiiton: "position",
-    sel: "sell",
     buuy: "buy",
-    selled: "sold",
 
-    // deposits / payments
     depoist: "deposit",
     deposite: "deposit",
     depost: "deposit",
@@ -83,12 +88,10 @@ function normalizeTicketText(text: string) {
     transction: "transaction",
     transaciton: "transaction",
 
-    // wallet / crypto
     walet: "wallet",
     wallett: "wallet",
     walett: "wallet",
 
-    // account / access
     accunt: "account",
     acount: "account",
     accont: "account",
@@ -98,15 +101,12 @@ function normalizeTicketText(text: string) {
     acces: "access",
     acess: "access",
 
-    // support / intent
     suport: "support",
     supprt: "support",
-    helpme: "help me",
     refnd: "refund",
     refun: "refund",
     refud: "refund",
 
-    // market / oracle
     marcket: "market",
     mrket: "market",
     makret: "market",
@@ -121,12 +121,10 @@ function normalizeTicketText(text: string) {
     normalized = normalized.replace(regex, correct);
   });
 
-  normalized = normalized
+  return normalized
     .replace(/\s+/g, " ")
     .replace(/[^\w\s?.]/g, "")
     .trim();
-
-  return normalized;
 }
 
 function levenshteinDistance(a: string, b: string) {
@@ -163,15 +161,15 @@ function fuzzyKeywordMatch(text: string, keywords: string[]) {
     if (keywordWords.length > 1) {
       return keywordWords.every((kw) =>
         words.some((word) => {
-          if (word.length < 4 || kw.length < 4) return false;
-          return levenshteinDistance(word, kw) <= 2;
+          if (word.length < 5 || kw.length < 5) return false;
+          return levenshteinDistance(word, kw) <= 1;
         })
       );
     }
 
     return words.some((word) => {
-      if (word.length < 4 || keyword.length < 4) return false;
-      return levenshteinDistance(word, keyword) <= 2;
+      if (word.length < 5 || keyword.length < 5) return false;
+      return levenshteinDistance(word, keyword) <= 1;
     });
   });
 }
@@ -212,6 +210,12 @@ export function isLikelySupportTicket(text: string) {
     "locked",
     "suspicious",
     "token",
+    "thanks",
+    "thank you",
+    "happy",
+    "shout out",
+    "appreciate",
+    "good day",
   ];
 
   return fuzzyKeywordMatch(lower, supportSignals);
@@ -219,6 +223,27 @@ export function isLikelySupportTicket(text: string) {
 
 export function classifyTicket(text: string) {
   const lower = normalizeTicketText(text);
+
+  if (
+    fuzzyKeywordMatch(lower, [
+      "thank you",
+      "thanks",
+      "good job",
+      "happy",
+      "shout out",
+      "appreciate",
+      "great support",
+      "good day",
+    ])
+  ) {
+    return {
+      primary_category: "positive_feedback",
+      secondary_category: "customer_appreciation",
+      priority: "P3",
+      escalation_team: "CX",
+      risk_flags: ["positive_sentiment"],
+    };
+  }
 
   if (
     fuzzyKeywordMatch(lower, [

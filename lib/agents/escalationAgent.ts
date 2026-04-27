@@ -1,4 +1,15 @@
 export function escalationAgent(category: string, priority: string) {
+  if (category === "positive_feedback") {
+    return {
+      escalation_team: "CX Analytics",
+      escalation_reason:
+        "Positive customer sentiment should be captured for analytics, not routed as operational support work.",
+      required_fields: ["message_text", "channel", "timestamp"],
+      sla_recommendation: "none",
+      handling: "signal_only",
+    };
+  }
+
   if (category === "trading_platform_issue") {
     return {
       escalation_team: "Engineering",
@@ -13,6 +24,7 @@ export function escalationAgent(category: string, priority: string) {
         "platform_used",
       ],
       sla_recommendation: "urgent",
+      handling: "operational_review",
     };
   }
 
@@ -28,6 +40,7 @@ export function escalationAgent(category: string, priority: string) {
         "user_claim",
       ],
       sla_recommendation: priority === "P1" ? "urgent" : "standard",
+      handling: "operational_review",
     };
   }
 
@@ -44,6 +57,7 @@ export function escalationAgent(category: string, priority: string) {
         "login_type",
       ],
       sla_recommendation: "standard",
+      handling: "operational_review",
     };
   }
 
@@ -58,6 +72,7 @@ export function escalationAgent(category: string, priority: string) {
         "recent_activity_context",
       ],
       sla_recommendation: "standard",
+      handling: "operational_review",
     };
   }
 
@@ -68,6 +83,7 @@ export function escalationAgent(category: string, priority: string) {
         "Access issue may involve location or eligibility restrictions.",
       required_fields: ["account_identifier", "current_region", "error_message"],
       sla_recommendation: "standard",
+      handling: "operational_review",
     };
   }
 
@@ -76,5 +92,6 @@ export function escalationAgent(category: string, priority: string) {
     escalation_reason: "No specialized escalation path detected.",
     required_fields: ["account_identifier", "issue_summary"],
     sla_recommendation: "standard",
+    handling: "manual_triage",
   };
 }

@@ -1,4 +1,8 @@
 export function responseAgent(category: string) {
+  if (category === "positive_feedback") {
+    return null;
+  }
+
   if (category === "trading_platform_issue") {
     return `Thanks for flagging this. I understand how frustrating it is when you are trying to manage an active position and the trading flow does not behave as expected.
 

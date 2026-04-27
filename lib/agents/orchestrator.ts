@@ -68,7 +68,7 @@ export async function analyzeTicket(text: string) {
       policy: {
         matched_sources: [],
         synthesized_policy:
-          "This MVP currently covers support tickets involving trading, deposits, withdrawals, market resolution, account review, access restrictions, and related escalation workflows.",
+          "This MVP currently covers support tickets involving trading, deposits, withdrawals, market resolution, account review, access restrictions, positive feedback, and related escalation workflows.",
         confidence: 0.35,
       },
       market: {
@@ -85,9 +85,10 @@ export async function analyzeTicket(text: string) {
           "account, market, or transaction context if applicable",
         ],
         sla_recommendation: "standard",
+        handling: "manual_triage",
       },
       response:
-        "This looks outside the current support coverage model. This MVP is focused on tickets involving trading, deposits, withdrawals, market resolution, account review, access restrictions, and related escalation workflows.",
+        "This looks outside the current support coverage model. This MVP is focused on tickets involving trading, deposits, withdrawals, market resolution, account review, access restrictions, positive feedback, and related escalation workflows.",
       confidence: {
         score: 0.35,
         level: "low",
@@ -120,36 +121,38 @@ export async function analyzeTicket(text: string) {
   const deterministicTags = classifyTicket(text);
   const modelExtraction = await geminiExtractionAgent(text);
 
-  const tags = modelExtraction
-    ? {
-        primary_category:
-          modelExtraction.primary_category ||
-          deterministicTags.primary_category,
-        secondary_category:
-          modelExtraction.secondary_category ||
-          deterministicTags.secondary_category ||
-          "unspecified",
-        priority: modelExtraction.priority || deterministicTags.priority,
-        escalation_team:
-          modelExtraction.escalation_team ||
-          deterministicTags.escalation_team,
-        risk_flags:
-          modelExtraction.risk_flags && modelExtraction.risk_flags.length > 0
-            ? modelExtraction.risk_flags
-            : deterministicTags.risk_flags,
-        support_domain:
-          modelExtraction.support_domain || "general_support",
-        user_sentiment:
-          modelExtraction.user_sentiment || intake.sentiment,
-        requires_human_review: true,
-        model_reasoning: modelExtraction.reasoning,
-        extraction_mode: "standardized_classification",
-      }
+const finalCategory =
+  modelExtraction?.primary_category || deterministicTags.primary_category;
+
+const tags = modelExtraction
+  ? {
+      primary_category: finalCategory,
+      secondary_category:
+        modelExtraction.secondary_category ||
+        deterministicTags.secondary_category ||
+        "unspecified",
+      priority: modelExtraction.priority || deterministicTags.priority,
+      escalation_team:
+        modelExtraction.escalation_team ||
+        deterministicTags.escalation_team,
+      risk_flags:
+        modelExtraction.risk_flags && modelExtraction.risk_flags.length > 0
+          ? modelExtraction.risk_flags
+          : deterministicTags.risk_flags,
+      support_domain:
+        modelExtraction.support_domain || "general_support",
+      user_sentiment:
+        modelExtraction.user_sentiment || intake.sentiment,
+      requires_human_review: finalCategory !== "positive_feedback",
+      model_reasoning: modelExtraction?.reasoning,
+      extraction_mode: "standardized_classification",
+    }
     : {
         ...deterministicTags,
         support_domain: "general_support",
         user_sentiment: intake.sentiment,
-        requires_human_review: true,
+        requires_human_review:
+          deterministicTags.primary_category !== "positive_feedback",
         extraction_mode: "deterministic_fallback",
       };
 
@@ -157,6 +160,7 @@ export async function analyzeTicket(text: string) {
   const market = marketContextAgent(tags.primary_category);
   const escalation = escalationAgent(tags.primary_category, tags.priority);
   const response = responseAgent(tags.primary_category);
+  const isSignalOnly = tags.primary_category === "positive_feedback";
 
   const confidenceScore = computeConfidence({
     modelExtraction,
@@ -203,20 +207,25 @@ export async function analyzeTicket(text: string) {
       {
         agent: "Escalation Agent",
         status: "complete",
-        output: `Routed to ${escalation.escalation_team} with ${escalation.sla_recommendation} priority.`,
+        output: isSignalOnly
+          ? "Logged to CX Analytics. No operational escalation required."
+          : `Routed to ${escalation.escalation_team} with ${escalation.sla_recommendation} priority.`,
       },
       {
         agent: "Response Draft Agent",
-        status: "complete",
-        output: "Prepared a policy-aligned draft for human review.",
+        status: isSignalOnly ? "skipped" : "complete",
+        output: isSignalOnly
+          ? "No response draft generated because this is signal-only feedback."
+          : "Prepared a policy-aligned draft for human review.",
       },
       {
-        agent: "Human Review",
-        status: "required",
-        output:
-          tags.priority === "P1" || tags.priority === "P0"
-            ? "High priority issue requires validation before sending."
-            : "Recommended review before sending.",
+        agent: isSignalOnly ? "CX Analytics" : "Human Review",
+        status: isSignalOnly ? "logged" : "required",
+        output: isSignalOnly
+          ? "Captured as sentiment and product quality signal. No support action required."
+          : tags.priority === "P1" || tags.priority === "P0"
+          ? "High priority issue requires validation before sending."
+          : "Recommended review before sending.",
       },
     ],
     intake,
@@ -231,32 +240,43 @@ export async function analyzeTicket(text: string) {
       risk_flags: tags.risk_flags,
       escalation_team: tags.escalation_team,
       requires_human_review: tags.requires_human_review,
-      reasoning:
-        "Baseline classification path used because the live model layer did not return a structured response.",
+      reasoning: isSignalOnly
+        ? "Positive feedback was classified as signal-only CX analytics input."
+        : "Baseline classification path used because the live model layer did not return a structured response.",
     },
     policy,
     market,
     escalation,
     response,
     confidence: {
-      score: confidenceScore,
-      level:
-        confidenceScore >= 0.8
-          ? "high"
-          : confidenceScore >= 0.6
-          ? "medium"
-          : "low",
-      explanation:
-        "Confidence is based on model extraction availability, matched policy sources, risk flag clarity, and market lifecycle relevance.",
+      score: isSignalOnly ? 0.9 : confidenceScore,
+      level: isSignalOnly
+        ? "high"
+        : confidenceScore >= 0.8
+        ? "high"
+        : confidenceScore >= 0.6
+        ? "medium"
+        : "low",
+      explanation: isSignalOnly
+        ? "High confidence because the input was classified as positive feedback and does not require operational escalation."
+        : "Confidence is based on model extraction availability, matched policy sources, risk flag clarity, and market lifecycle relevance.",
     },
-    human_review: {
-      status: "required",
-      reason:
-        tags.priority === "P1" || tags.priority === "P0"
-          ? "High priority issue requires human validation before response"
-          : "Human review recommended before final customer reply",
-      suggested_action:
-        "Review tags, confirm escalation path, verify required evidence, then send or edit response.",
-    },
+    human_review: isSignalOnly
+      ? {
+          status: "not_required",
+          reason:
+            "Positive feedback is treated as CX analytics signal, not operational support work.",
+          suggested_action:
+            "Log for sentiment tracking, NPS analysis, and product quality reporting. No customer response required.",
+        }
+      : {
+          status: "required",
+          reason:
+            tags.priority === "P1" || tags.priority === "P0"
+              ? "High priority issue requires human validation before response"
+              : "Human review recommended before final customer reply",
+          suggested_action:
+            "Review tags, confirm escalation path, verify required evidence, then send or edit response.",
+        },
   };
 }
